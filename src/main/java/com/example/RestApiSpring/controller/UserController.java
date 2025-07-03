@@ -19,14 +19,21 @@ public class UserController {
     @Autowired   // Injecting the UserRepository
     private UserRepository userRepository;
 
-    @PostMapping
-    public ResponseEntity<User> createUser(@Valid @RequestBody User user){
-        // Save the user to the database
-        User savedUser = userRepository.save(user);
+//    @PostMapping
+//    public ResponseEntity<User> createUser(@Valid @RequestBody User user){
+//        // Save the user to the database
+//        User savedUser = userRepository.save(user);
+//
+//        // Return the saved user with a 201 Created status
+//        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
+//    }
 
-        // Return the saved user with a 201 Created status
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
+    @PostMapping("/batch")
+    public ResponseEntity<List<User>> createUsers(@Valid @RequestBody List<User> users) {
+        List<User> savedUsers = userRepository.saveAll(users);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUsers);
     }
+
 
     @GetMapping
     public List<User> getAllUsers() {
