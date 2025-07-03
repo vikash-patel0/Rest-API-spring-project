@@ -9,6 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -35,11 +38,17 @@ public class UserController {
     }
 
 
-    @GetMapping
-    public List<User> getAllUsers() {
-        // Retrieve all users from the database
-        return userRepository.findAll();
+//    @GetMapping
+//    public List<User> getAllUsers() {
+//        // Retrieve all users from the database
+//        return userRepository.findAll();
+//    }
+
+    @GetMapping("/page")
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
         // Find the user by ID
@@ -48,6 +57,8 @@ public class UserController {
         return user.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
+
+
 
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody User userDetails) {
