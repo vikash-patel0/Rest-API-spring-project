@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -22,14 +23,14 @@ public class UserController {
     @Autowired   // Injecting the UserRepository
     private UserRepository userRepository;
 
-//    @PostMapping
-//    public ResponseEntity<User> createUser(@Valid @RequestBody User user){
-//        // Save the user to the database
-//        User savedUser = userRepository.save(user);
-//
-//        // Return the saved user with a 201 Created status
-//        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
-//    }
+    @PostMapping
+    public ResponseEntity<User> createUser(@Valid @RequestBody User user){
+        // Save the user to the database
+        User savedUser = userRepository.save(user);
+
+        // Return the saved user with a 201 Created status
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
+    }
 
     @PostMapping("/batch")
     public ResponseEntity<List<User>> createUsers(@Valid @RequestBody List<User> users) {
@@ -38,11 +39,11 @@ public class UserController {
     }
 
 
-//    @GetMapping
-//    public List<User> getAllUsers() {
-//        // Retrieve all users from the database
-//        return userRepository.findAll();
-//    }
+    @GetMapping
+    public List<User> getAllUsers() {
+        // Retrieve all users from the database
+        return userRepository.findAll();
+    }
 
     @GetMapping("/page")
     public Page<User> getAllUsers(Pageable pageable) {
