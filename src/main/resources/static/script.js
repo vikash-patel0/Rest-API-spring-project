@@ -1,6 +1,7 @@
 const API_URL = "http://localhost:8080/api/users";
 const userForm = document.getElementById("userForm");
-const userTableBody = document.getElementById("usertablebody");
+const adminTableBody = document.getElementById("adminTableBody");
+const userTableBody = document.getElementById("userTableBody");
 const messageBox = document.getElementById("messageBox");
 
 // Helper: Format ISO datetime to 'YYYY-MM-DD HH:mm:ss'
@@ -29,30 +30,60 @@ function clearForm() {
     document.getElementById("userId").value = "";
     document.getElementById("nameError").textContent = "";
     document.getElementById("emailError").textContent = "";
+    document.getElementById("passwordError").textContent = "";
+    document.getElementById("rolesError").textContent = "";
 }
 
-// Render users in the table
+
+// Render users in the tables
 function renderUsers(users) {
+    adminTableBody.innerHTML = "";
     userTableBody.innerHTML = "";
-    if (users.length === 0) {
-        userTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888;">No users found.</td></tr>`;
-        return;
+
+    const admins = users.filter(user => user.roles && user.roles.includes("ROLE_ADMIN"));
+    const normalUsers = users.filter(user => !user.roles || !user.roles.includes("ROLE_ADMIN"));
+
+    // Render Admins
+    if (admins.length === 0) {
+        adminTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888;">No admins found.</td></tr>`;
+    } else {
+        admins.forEach(user => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${user.id}</td>
+                <td>${user.name}</td>
+                <td>${user.email}</td>
+                <td>${user.createdAt ? formatDateTime(user.createdAt) : '-'}</td>
+                <td>${user.updatedAt ? formatDateTime(user.updatedAt) : '-'}</td>
+                <td class="actions">
+                    <button class="edit" data-id="${user.id}">Edit</button>
+                    <button class="delete" data-id="${user.id}">Delete</button>
+                </td>
+            `;
+            adminTableBody.appendChild(tr);
+        });
     }
-    users.forEach(user => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${user.id}</td>
-            <td>${user.name}</td>
-            <td>${user.email}</td>
-            <td>${user.createdAt ? formatDateTime(user.createdAt) : '-'}</td>
-            <td>${user.updatedAt ? formatDateTime(user.updatedAt) : '-'}</td>
-            <td class="actions">
-                <button class="edit" data-id="${user.id}">Edit</button>
-                <button class="delete" data-id="${user.id}">Delete</button>
-            </td>
-        `;
-        userTableBody.appendChild(tr);
-    });
+
+    // Render Users
+    if (normalUsers.length === 0) {
+        userTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888;">No users found.</td></tr>`;
+    } else {
+        normalUsers.forEach(user => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${user.id}</td>
+                <td>${user.name}</td>
+                <td>${user.email}</td>
+                <td>${user.createdAt ? formatDateTime(user.createdAt) : '-'}</td>
+                <td>${user.updatedAt ? formatDateTime(user.updatedAt) : '-'}</td>
+                <td class="actions">
+                    <button class="edit" data-id="${user.id}">Edit</button>
+                    <button class="delete" data-id="${user.id}">Delete</button>
+                </td>
+            `;
+            userTableBody.appendChild(tr);
+        });
+    }
 }
 
 // Fetch all users (GET)
@@ -63,6 +94,7 @@ async function fetchUsers() {
         const users = await response.json();
         renderUsers(users);
     } catch (err) {
+        adminTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#e74c3c;">Failed to load admins.</td></tr>`;
         userTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#e74c3c;">Failed to load users.</td></tr>`;
         showMessage("Failed to load users.", true);
     }
@@ -74,11 +106,14 @@ async function saveUser(event) {
     const id = document.getElementById("userId").value;
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const rolesInput = document.getElementById("roles").value.trim();
 
     // Basic validation
     let valid = true;
     document.getElementById("nameError").textContent = "";
     document.getElementById("emailError").textContent = "";
+    document.getElementById("passwordError").textContent = "";
     if (!name) {
         document.getElementById("nameError").textContent = "Name is required.";
         valid = false;
@@ -87,9 +122,19 @@ async function saveUser(event) {
         document.getElementById("emailError").textContent = "Email is required.";
         valid = false;
     }
+    if (!password && !id) { // Require password only when adding new user
+        document.getElementById("passwordError").textContent = "Password is required.";
+        valid = false;
+    }
     if (!valid) return;
 
+    // Build user object
     const user = { name, email };
+    if (password) user.password = password;
+    if (rolesInput) {
+        user.roles = rolesInput.split(",").map(role => role.trim());
+    }
+
     let url = API_URL;
     let method = "POST";
     let body = JSON.stringify(user);
@@ -111,7 +156,6 @@ async function saveUser(event) {
             clearForm();
             fetchUsers();
         } else {
-            // Try to show backend validation error if available
             let errMsg = "Save failed.";
             try {
                 const errJson = await response.json();
@@ -123,6 +167,7 @@ async function saveUser(event) {
         showMessage("Save failed.", true);
     }
 }
+
 
 // Edit user (GET by id)
 async function editUser(id) {
@@ -155,8 +200,8 @@ async function deleteUser(id) {
     }
 }
 
-// Event delegation for edit and delete buttons
-userTableBody.addEventListener("click", function(e) {
+// Event delegation for edit and delete buttons for both tables
+function handleTableClick(e) {
     if (e.target.classList.contains("edit")) {
         const id = e.target.getAttribute("data-id");
         editUser(id);
@@ -165,7 +210,9 @@ userTableBody.addEventListener("click", function(e) {
         const id = e.target.getAttribute("data-id");
         deleteUser(id);
     }
-});
+}
+adminTableBody.addEventListener("click", handleTableClick);
+userTableBody.addEventListener("click", handleTableClick);
 
 // Form submission handler
 userForm.addEventListener("submit", saveUser);
